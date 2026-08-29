@@ -36,16 +36,27 @@ def _get_llm(llm_type: str):
         raise ValueError(f"Unknown LLM type: {llm_type}")
 
 
+def _get_runner(sandbox_type: str):
+    """Return a SandboxRunner (local kind or Daytona)."""
+    if sandbox_type == "daytona":
+        from recovery.daytona_runner import DaytonaRunner
+        return DaytonaRunner()
+    from recovery.cluster import KindRunner
+    return KindRunner()
+
+
 def main():
     p = argparse.ArgumentParser(description="DeployGuard-Recovery harness")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("setup")
+    setup = sub.add_parser("setup")
+    setup.add_argument("--sandbox", choices=["local", "daytona"], default="local")
 
     lap = sub.add_parser("lap")
     lap.add_argument("--fault", required=True, choices=config.FAULTS)
     lap.add_argument("--llm", choices=["mock", "gemini"], default="mock",
                      help="LLM to use (default: mock)")
+    lap.add_argument("--sandbox", choices=["local", "daytona"], default="local")
 
     sub.add_parser("capture")
 
@@ -71,14 +82,15 @@ def main():
     args = p.parse_args()
 
     if args.cmd == "setup":
-        r = KindRunner()
+        r = _get_runner(args.sandbox)
         r.ensure_up()
         r.deploy_healthy()
         print("\n[ok] cluster ready with healthy app")
 
     elif args.cmd == "lap":
         llm = _get_llm(args.llm)
-        res = run_lap(args.fault, llm=llm)
+        runner = _get_runner(args.sandbox)
+        res = run_lap(args.fault, llm=llm, runner=runner)
         print(f"\n[result] fault={res.fault} success={res.success} safety={res.safety}")
 
     elif args.cmd == "capture":

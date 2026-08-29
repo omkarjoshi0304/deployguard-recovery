@@ -18,9 +18,26 @@ def _env():
     return e
 
 
+# ---- Executor abstraction --------------------------------------------------
+# kubectl / manifest-apply route through the ACTIVE executor.
+#   None            -> run locally via subprocess (KindRunner, default)
+#   SandboxExecutor -> run inside a Daytona sandbox (DaytonaRunner)
+# This lets faults.py / evidence.py / scorer.py stay identical in both modes.
+
+_EXECUTOR = None
+
+
+def set_executor(ex) -> None:
+    """Route kubectl through `ex` (or None for local)."""
+    global _EXECUTOR
+    _EXECUTOR = ex
+
+
 def kubectl(args, timeout=60, check=False, quiet=False):
-    return run(["kubectl", "--context", config.CONTEXT, *args],
-               timeout=timeout, check=check, quiet=quiet)
+    cmd = ["kubectl", "--context", config.CONTEXT, *args]
+    if _EXECUTOR is not None:
+        return _EXECUTOR.run_cmd(cmd, timeout=timeout, check=check, quiet=quiet)
+    return run(cmd, timeout=timeout, check=check, quiet=quiet)
 
 
 HEALTHY_MANIFEST = f"""
@@ -84,6 +101,9 @@ class KindRunner(SandboxRunner):
 
 
 def _apply_stdin(manifest: str):
+    """Apply a manifest. Routes through the active executor if set."""
+    if _EXECUTOR is not None:
+        return _EXECUTOR.apply_manifest(manifest)
     import subprocess
     print("  $ kubectl apply -f - (stdin manifest)")
     proc = subprocess.run(

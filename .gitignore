@@ -43,3 +43,6 @@ memory/incidents.json
 
 # Logs
 *.log
+
+# Uploaded binaries cache (downloaded on demand)
+.bin/
