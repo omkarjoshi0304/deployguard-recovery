@@ -31,13 +31,15 @@ def capture_all(settle_seconds: int = 8):
         print(f"  saved {path}  (pod_reasons={bundle.pod_reasons})")
 
 
-def replay(fault: str):
+def replay(fault: str, llm=None):
     """Run the brain against a saved fixture — no cluster required."""
+    from .interfaces import LLMClient
+    llm = llm or RuleBasedLLM()
     path = FIX_DIR / f"{fault}.json"
     if not path.exists():
         raise FileNotFoundError(f"no fixture for '{fault}'; run `capture` first")
     bundle = EvidenceBundle.from_dict(json.loads(path.read_text()))
-    fix = RuleBasedLLM().reason(bundle)
+    fix = llm.reason(bundle)
     print(f"[replay] fault={fault}")
     print(f"  pod_reasons={bundle.pod_reasons}")
     print(f"  proposed fix: {fix.action}  params={fix.params}")
