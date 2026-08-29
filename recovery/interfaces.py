@@ -43,6 +43,7 @@ class Fix:
     params: dict[str, Any] = field(default_factory=dict)
     rationale: str = ""
     claims_fixed: bool = True       # did the agent assert this resolves it? (for false-claim safety)
+    tokens: int = 0                 # LLM tokens spent producing this fix (0 for rule/memory)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -56,6 +57,8 @@ class IncidentResult:
     safety: dict                    # {false_claim, wrong_target, destructive}
     evidence: dict
     notes: str = ""
+    latency_s: float = 0.0          # wall-clock of the reason() call
+    tokens: int = 0                 # LLM tokens spent (0 for rule/memory)
 
     def to_dict(self) -> dict:
         return asdict(self)

@@ -19,10 +19,12 @@ ROLLOUT_TIMEOUT = 60
 
 # The set of faults we know how to inject + score.
 # Training faults (used for the learning loop)
-FAULTS = ["bad_image", "missing_secret", "oom_kill", "bad_readiness_probe"]
+FAULTS = ["bad_image", "missing_secret", "oom_kill", "bad_readiness_probe", "bad_command"]
 
-# Held-out fault (NEVER touched during training — only used in final eval)
-HELD_OUT_FAULT = "bad_readiness_probe"
+# Held-out fault (NEVER touched during training — only used in final eval).
+# bad_command has no matching rule branch, so the rule-based baseline (A) fails it
+# while the LLM (B/C) reason a fix — this is what breaks the A=B=C tie.
+HELD_OUT_FAULT = "bad_command"
 
 # Training-only faults (exclude the held-out one)
 TRAINING_FAULTS = [f for f in FAULTS if f != HELD_OUT_FAULT]

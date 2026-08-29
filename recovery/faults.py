@@ -21,6 +21,8 @@ def inject(fault: str) -> dict:
         return _oom_kill()
     if fault == "bad_readiness_probe":
         return _bad_readiness_probe()
+    if fault == "bad_command":
+        return _bad_command()
     raise ValueError(f"unknown fault: {fault}")
 
 
@@ -86,4 +88,21 @@ def _bad_readiness_probe() -> dict:
         "old_path": "/",
         "new_path": "/healthz-nonexistent",
         "change_reason": "health-check standardisation PR",
+    }
+
+
+def _bad_command() -> dict:
+    # Override the container command with a broken nginx directive -> the process
+    # exits immediately -> CrashLoopBackOff. No pattern the rule brain recognizes;
+    # the fix value is intentionally NOT in the diff, so the agent must reason.
+    patch = (
+        '{"spec":{"template":{"spec":{"containers":[{"name":"%s",'
+        '"command":["nginx","-g","daemXon off;"]}]}}}}' % config.APP_NAME
+    )
+    kubectl(["patch", "deployment", config.APP_NAME, "--type", "strategic",
+             "-p", patch], check=True)
+    return {
+        "kind": "command_changed",
+        "field": "spec.template.spec.containers[0].command",
+        "change_reason": "startup-hardening PR",
     }

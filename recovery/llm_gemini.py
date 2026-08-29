@@ -46,6 +46,7 @@ Analyze the evidence and propose ONE structured fix. Choose from these actions:
 - `create_secret` — create a missing secret/configmap
 - `fix_memory_limit` — restore a safe memory limit
 - `fix_readiness_probe` — restore the readiness probe path
+- `fix_command` — the container command/args are broken (e.g. crash loop from a bad startup command); reset to the working command
 - `escalate` — if you cannot determine a safe fix (set claims_fixed=false)
 
 ## Response Format
@@ -143,4 +144,9 @@ class GeminiClient(LLMClient):
                 claims_fixed=False,
             )
 
-        return _parse_fix(text, evidence.deployment)
+        # Capture token usage so the eval can show cost per system.
+        tokens = getattr(getattr(response, "usage_metadata", None),
+                         "total_token_count", 0) or 0
+        fix = _parse_fix(text, evidence.deployment)
+        fix.tokens = tokens
+        return fix
