@@ -107,11 +107,13 @@ def _parse_fix(response_text: str, deployment: str) -> Fix:
 class GeminiClient(LLMClient):
     """Real Gemini LLM client via google.genai library (new SDK)."""
 
-    def __init__(self, api_key: str | None = None, model: str = "gemini-2.5-flash"):
+    def __init__(self, api_key: str | None = None, model: str | None = None):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY must be set (env var or constructor arg)")
-        self.model = model
+        # 'gemini-flash-latest' is a non-stale alias that works for new keys.
+        # Override with GEMINI_MODEL if you want a specific version.
+        self.model = model or os.getenv("GEMINI_MODEL", "gemini-flash-latest")
 
         # Lazy import so the mock brain doesn't require this dependency
         try:
@@ -126,21 +128,41 @@ class GeminiClient(LLMClient):
             )
 
     def reason(self, evidence: EvidenceBundle, memory=None) -> Fix:
+        import time, re
         prompt = _build_prompt(evidence)
-        try:
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt,
-            )
-            text = response.text
-            print(f"  [gemini] raw response: {text[:150]}...")
-        except Exception as e:
-            print(f"  [gemini] API error: {e}")
+        text = None
+        last_err = None
+        for attempt in range(4):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model,
+                    contents=prompt,
+                )
+                text = response.text
+                print(f"  [gemini] raw response: {text[:150]}...")
+                break
+            except Exception as e:
+                last_err = e
+                msg = str(e)
+                # Hard exhaustion (daily cap / billing) -> don't waste time retrying.
+                hard = any(k in msg for k in
+                           ("PerDay", "depleted", "billing", "prepayment", "quotaValue"))
+                # Transient per-minute throttle -> honor the retry delay and retry.
+                if ("429" in msg or "RESOURCE_EXHAUSTED" in msg) and not hard:
+                    m = re.search(r"retry(?:Delay)?['\"]?\s*[:=]\s*['\"]?(\d+)", msg)
+                    delay = min(int(m.group(1)) if m else 15, 40)
+                    print(f"  [gemini] throttled, retrying in {delay}s "
+                          f"(attempt {attempt+1}/4)...")
+                    time.sleep(delay + 1)
+                    continue
+                break  # non-retryable (hard quota, billing, 404, etc.)
+        if text is None:
+            print(f"  [gemini] API error: {last_err}")
             return Fix(
                 action="escalate",
                 target=evidence.deployment,
                 params={},
-                rationale=f"Gemini API error: {e}",
+                rationale=f"Gemini API error: {last_err}",
                 claims_fixed=False,
             )
 
