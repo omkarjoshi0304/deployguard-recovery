@@ -24,8 +24,9 @@ class RuleBasedLLM(LLMClient):
         change = evidence.recent_change or {}
 
         # Symptom: container config error, typically a missing secret/configmap ref.
-        # Check this BEFORE image: a missing-secret event also contains "not found".
-        if "createcontainerconfigerror" in reasons or "secret" in events:
+        # Match on the pod reason only — "secret" appears in unrelated events
+        # (e.g. the default serviceaccount token), which false-matches OOM/others.
+        if "createcontainerconfigerror" in reasons:
             ref = change.get("secret_ref", {"name": "app-secret", "key": "API_KEY"})
             return Fix(
                 action="create_secret",

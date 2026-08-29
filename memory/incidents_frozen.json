@@ -12,7 +12,7 @@
     "fix_params": {
       "image": "nginx:1.27-alpine"
     },
-    "rationale": "Image pull failing; roll back to last-known-good image from the shipped diff."
+    "rationale": "The deployment failed due to an ErrImagePull error, as the new image 'nginx:9.9.9-doesnotexist' does not exist. Rolling back to the previous working image 'nginx:1.27-alpine' will resolve this."
   },
   {
     "fingerprint": {
@@ -26,10 +26,9 @@
     "fix_action": "create_secret",
     "fix_params": {
       "name": "app-secret",
-      "key": "API_KEY",
-      "value": "provisioned-by-agent"
+      "key": "API_KEY"
     },
-    "rationale": "Pod references a secret that does not exist; create it."
+    "rationale": "The deployment is failing to create new pods due to a missing 'app-secret' referenced by an environment variable, as indicated by recent changes and pod events ('Error: secret \"app-secret\" not found')."
   },
   {
     "fingerprint": {
@@ -41,8 +40,20 @@
     },
     "fix_action": "fix_memory_limit",
     "fix_params": {
-      "memory": "128Mi"
+      "memory_limit": "128Mi"
     },
-    "rationale": "Container is OOMKilled; restore the previous memory limit from the shipped diff."
+    "rationale": "The container is consistently OOM-killed due to the recently reduced memory limit of 4Mi. Restoring the previous limit of 128Mi will allow the container to start successfully."
+  },
+  {
+    "fingerprint": {
+      "pod_reasons": [],
+      "change_kind": "readiness_probe_changed",
+      "ready": true
+    },
+    "fix_action": "fix_readiness_probe",
+    "fix_params": {
+      "path": "/"
+    },
+    "rationale": "The readiness probe was changed to a non-existent path '/healthz-nonexistent', causing it to fail with a 404 and preventing new pods from becoming ready."
   }
 ]
