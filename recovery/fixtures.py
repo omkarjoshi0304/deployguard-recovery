@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 from . import config, faults, evidence as ev
-from .cluster import KindRunner
+from .cluster import KindRunner, kubectl
 from .interfaces import EvidenceBundle
 from .llm_mock import RuleBasedLLM
 
@@ -23,6 +23,11 @@ def capture_all(settle_seconds: int = 8):
     for fault in config.FAULTS:
         print(f"\n[capture] {fault}")
         runner.reset_app()
+        # Purge namespace events so the fixture captures ONLY this fault's events.
+        # kubectl get events is namespace-wide; stale events from the previous
+        # fault would otherwise bleed in (e.g. a "secret not found" event landing
+        # in the oom_kill fixture).
+        kubectl(["delete", "events", "--all"], quiet=True)
         change = faults.inject(fault)
         time.sleep(settle_seconds)
         bundle = ev.collect(change)

@@ -74,7 +74,7 @@ Every file in the project, organized by purpose.
 - `GOOD_IMAGE` — known-healthy nginx image
 - `FAULTS` — all 4 fault types
 - `TRAINING_FAULTS` — faults used in training (excludes held-out)
-- `HELD_OUT_FAULT` — the unseen fault for eval (`bad_readiness_probe`)
+- `HELD_OUT_FAULT` — the unseen fault for eval (`bad_command`)
 
 **Change this file to add faults or change the held-out selection.**
 
@@ -337,7 +337,7 @@ Every file in the project, organized by purpose.
 **Structure:** `{"fault": "...", "results": [...]}`
 - Each result: system, fault, action, success, safety, rationale
 
-**Example:** 9 entries (3 laps × 3 systems) all on `bad_readiness_probe`.
+**Example:** 9 entries (3 laps × 3 systems) all on `bad_command`.
 
 **Why it matters:** This is your **results table for the demo** — shows all 3 systems side-by-side.
 
