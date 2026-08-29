@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.pyc
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific runtime artifacts (keep structure, ignore content)
+# These are auto-generated and large; teammates regenerate locally
+runs/*.json
+eval/*.json
+memory/incidents.json
+
+# Keep frozen memory and fixtures — they're small and part of the demo
+!memory/incidents_frozen.json
+!fixtures/*.json
+
+# Logs
+*.log

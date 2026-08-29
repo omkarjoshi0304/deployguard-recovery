@@ -1,0 +1,48 @@
+[
+  {
+    "fingerprint": {
+      "pod_reasons": [
+        "ErrImagePull",
+        "phase:Pending"
+      ],
+      "change_kind": "image_update",
+      "ready": true
+    },
+    "fix_action": "rollback_image",
+    "fix_params": {
+      "image": "nginx:1.27-alpine"
+    },
+    "rationale": "Image pull failing; roll back to last-known-good image from the shipped diff."
+  },
+  {
+    "fingerprint": {
+      "pod_reasons": [
+        "CreateContainerConfigError",
+        "phase:Pending"
+      ],
+      "change_kind": "env_added",
+      "ready": true
+    },
+    "fix_action": "create_secret",
+    "fix_params": {
+      "name": "app-secret",
+      "key": "API_KEY",
+      "value": "provisioned-by-agent"
+    },
+    "rationale": "Pod references a secret that does not exist; create it."
+  },
+  {
+    "fingerprint": {
+      "pod_reasons": [
+        "CrashLoopBackOff"
+      ],
+      "change_kind": "resource_limits_changed",
+      "ready": true
+    },
+    "fix_action": "fix_memory_limit",
+    "fix_params": {
+      "memory": "128Mi"
+    },
+    "rationale": "Container is OOMKilled; restore the previous memory limit from the shipped diff."
+  }
+]
