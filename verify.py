@@ -33,10 +33,12 @@ def fast_checks():
     print("\n== Fast checks (clusterless, no keys) ==")
     llm = RuleBasedLLM()
 
-    # 1. Brain classifies each fixture correctly.
+    # 1. Brain classifies each recognizable fixture correctly.
     expect = {
         "bad_image": "rollback_image",
         "missing_secret": "create_secret",
+        "oom_kill": "fix_memory_limit",
+        "bad_readiness_probe": "fix_readiness_probe",
     }
     for fault, want in expect.items():
         path = FIX_DIR / f"{fault}.json"
@@ -46,6 +48,18 @@ def fast_checks():
         bundle = EvidenceBundle.from_dict(json.loads(path.read_text()))
         fix = llm.reason(bundle)
         check(f"{fault} -> {want} (got {fix.action})", fix.action == want)
+
+    # 1b. Held-out differentiator: the rule baseline must NOT correctly fix
+    # bad_command (it has no matching rule branch). This is what breaks the
+    # A=B=C tie in the eval — if the baseline ever learns to fix it, the demo
+    # story is gone, so guard it here.
+    hp = FIX_DIR / f"{config.HELD_OUT_FAULT}.json"
+    if hp.exists():
+        hb = EvidenceBundle.from_dict(json.loads(hp.read_text()))
+        hf = llm.reason(hb)
+        check(f"held-out {config.HELD_OUT_FAULT} NOT fixed by rules "
+              f"(got {hf.action}, correct=fix_command)",
+              hf.action != "fix_command")
 
     # 2. Unknown symptom escalates and does NOT claim a fix (safety-honest).
     unknown = EvidenceBundle("web", "default", False, 0, 1,

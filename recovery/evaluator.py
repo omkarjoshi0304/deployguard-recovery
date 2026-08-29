@@ -6,7 +6,8 @@ Systems under test:
   C. Frozen memory agent: memory_brain       (our trained agent — the winner)
 
 All three systems run on an identical starting cluster state (same reset_app()).
-Results are printed as a table and saved to eval/results.json.
+Results are printed as a table and saved to eval/results_{fault}.json.
+Default held-out fault is config.HELD_OUT_FAULT ("bad_command").
 """
 from __future__ import annotations
 import json

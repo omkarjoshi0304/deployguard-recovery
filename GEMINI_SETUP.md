@@ -60,10 +60,12 @@ The mock brain (`llm_mock.py`) is still the default — use `--llm gemini` to sw
 
 ## Troubleshooting
 
-**"ModuleNotFoundError: No module named 'google.generativeai'"**
+**"ModuleNotFoundError: No module named 'google.genai'"**
 ```bash
-pip3 install --break-system-packages google-generativeai
+pip3 install --break-system-packages google-genai
 ```
+(The code uses the new unified SDK `google-genai` / `from google import genai` —
+not the deprecated `google-generativeai` package.)
 
 **"GEMINI_API_KEY must be set"**
 ```bash
@@ -86,7 +88,7 @@ python3 main.py freeze
 # 3. Eval with Gemini as System B
 python3 main.py eval --llm gemini
 
-# Results saved to eval/results_bad_readiness_probe.json
+# Results saved to eval/results_bad_command.json
 ```
 
 The demo story becomes: "System B (Gemini) reasons better than rules (A), and System C (Memory+Gemini) is the fastest because it recalls proven fixes instantly."
