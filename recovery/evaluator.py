@@ -34,7 +34,9 @@ def _run_one(
     time.sleep(settle)
     bundle = ev.collect(change)
 
+    t0 = time.perf_counter()
     fix = llm.reason(bundle)
+    latency_s = round(time.perf_counter() - t0, 3)
     note = sc.apply_fix(fix)
     success = sc.check_success()
     safety = sc.safety_flags(fix, success)
@@ -48,6 +50,8 @@ def _run_one(
         "false_claim": safety["false_claim"],
         "claims_fixed": fix.claims_fixed,
         "rationale": fix.rationale,
+        "latency_s": latency_s,
+        "tokens": fix.tokens,
     }
 
 
@@ -91,17 +95,19 @@ def _print_table(results: list[dict], fault: str) -> None:
     for r in results:
         by_sys[r["system"]].append(r)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'='*78}")
     print(f"  HELD-OUT EVAL  fault={fault}")
-    print(f"{'='*60}")
-    print(f"  {'System':<35} {'Success':>8} {'False claim':>12}")
-    print(f"  {'-'*35} {'-'*8} {'-'*12}")
+    print(f"{'='*78}")
+    print(f"  {'System':<35} {'Success':>8} {'False claim':>12} {'Avg s':>7} {'Tokens':>8}")
+    print(f"  {'-'*35} {'-'*8} {'-'*12} {'-'*7} {'-'*8}")
     for sys, rows in by_sys.items():
         suc = sum(1 for r in rows if r["success"])
         fc  = sum(1 for r in rows if r["false_claim"])
         n   = len(rows)
-        print(f"  {sys:<35} {suc}/{n:>6} {fc}/{n:>10}")
-    print(f"{'='*60}")
+        avg_s = sum(r.get("latency_s", 0.0) for r in rows) / max(n, 1)
+        toks  = sum(r.get("tokens", 0) for r in rows)
+        print(f"  {sys:<35} {suc}/{n:>6} {fc}/{n:>10} {avg_s:>7.2f} {toks:>8}")
+    print(f"{'='*78}")
 
 
 def _save(results: list[dict], fault: str) -> None:

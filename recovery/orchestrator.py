@@ -33,8 +33,10 @@ def run_lap(fault: str, llm: LLMClient | None = None, runner: KindRunner | None 
     print(f"  pod_reasons={bundle.pod_reasons} ready={bundle.ready}")
 
     print("[agent] reasoning")
+    t0 = time.perf_counter()
     fix: Fix = llm.reason(bundle)
-    print(f"  fix={fix.action} rationale={fix.rationale!r}")
+    latency_s = round(time.perf_counter() - t0, 3)
+    print(f"  fix={fix.action} rationale={fix.rationale!r} latency={latency_s}s tokens={fix.tokens}")
 
     print("[apply] applying fix")
     note = scorer.apply_fix(fix)
@@ -47,6 +49,7 @@ def run_lap(fault: str, llm: LLMClient | None = None, runner: KindRunner | None 
     result = IncidentResult(
         fault=fault, fix=fix.to_dict(), success=success,
         safety=safety, evidence=bundle.to_dict(), notes=note,
+        latency_s=latency_s, tokens=fix.tokens,
     )
     _log(result)
     return result

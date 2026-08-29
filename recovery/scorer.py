@@ -51,6 +51,15 @@ def apply_fix(fix: Fix) -> str:
         kubectl(["patch", "deployment", fix.target, "--type", "strategic",
                  "-p", patch], check=False)
         return f"restored readiness probe path -> {path}"
+    if a == "fix_command":
+        # No params: restore the known-good nginx startup command.
+        patch = (
+            '{"spec":{"template":{"spec":{"containers":[{"name":"%s",'
+            '"command":["nginx","-g","daemon off;"]}]}}}}' % config.APP_NAME
+        )
+        kubectl(["patch", "deployment", fix.target, "--type", "strategic",
+                 "-p", patch], check=False)
+        return "reset container command -> nginx -g 'daemon off;'"
     if a in ("noop", "escalate"):
         return f"no cluster change ({a})"
     return f"unknown action '{a}' — no-op"
